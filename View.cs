@@ -48,35 +48,60 @@ namespace Tomogram
         }
 
         [Obsolete]
-        public void DrawQuads(int layerNumber)
+        public void DrawQuads(int layerNumber, bool mirrorLeftHalf)
         {
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.Begin(BeginMode.Quads);
+            //for (int x_coord = 0; x_coord < Bin.X - 1; x_coord++)
+            //    for (int y_coord = 0; y_coord < Bin.Y - 1; y_coord++)
+            //    {
+            //        short value;
+
+
+            //        value = Bin.array[x_coord + y_coord * Bin.X + layerNumber * Bin.X * Bin.Y];
+            //        GL.Color3(TransferFunction(value));
+            //        GL.Vertex2(x_coord, y_coord);
+
+
+            //        value = Bin.array[x_coord + (y_coord + 1) * Bin.X + layerNumber * Bin.X * Bin.Y];
+            //        GL.Color3(TransferFunction(value));
+            //        GL.Vertex2(x_coord, y_coord + 1);
+
+
+            //        value = Bin.array[(x_coord + 1) + (y_coord + 1) * Bin.X + layerNumber * Bin.X * Bin.Y];
+            //        GL.Color3(TransferFunction(value));
+            //        GL.Vertex2(x_coord + 1, y_coord + 1);
+
+
+            //        value = Bin.array[(x_coord + 1) + y_coord * Bin.X + layerNumber * Bin.X * Bin.Y];
+            //        GL.Color3(TransferFunction(value));
+            //        GL.Vertex2(x_coord + 1, y_coord);
+            //    }
             for (int x_coord = 0; x_coord < Bin.X - 1; x_coord++)
+            {
                 for (int y_coord = 0; y_coord < Bin.Y - 1; y_coord++)
                 {
+                    int sourceY = mirrorLeftHalf && x_coord < Bin.X / 2 ? Bin.Y - 1 - y_coord : y_coord;
+
                     short value;
 
-                    
-                    value = Bin.array[x_coord + y_coord * Bin.X + layerNumber * Bin.X * Bin.Y];
+                    value = Bin.array[x_coord + sourceY * Bin.X + layerNumber * Bin.X * Bin.Y];
                     GL.Color3(TransferFunction(value));
                     GL.Vertex2(x_coord, y_coord);
 
-                    
-                    value = Bin.array[x_coord + (y_coord + 1) * Bin.X + layerNumber * Bin.X * Bin.Y];
+                    value = Bin.array[x_coord + (sourceY + 1) * Bin.X + layerNumber * Bin.X * Bin.Y];
                     GL.Color3(TransferFunction(value));
                     GL.Vertex2(x_coord, y_coord + 1);
 
-                    
-                    value = Bin.array[(x_coord + 1) + (y_coord + 1) * Bin.X + layerNumber * Bin.X * Bin.Y];
+                    value = Bin.array[(x_coord + 1) + (sourceY + 1) * Bin.X + layerNumber * Bin.X * Bin.Y];
                     GL.Color3(TransferFunction(value));
                     GL.Vertex2(x_coord + 1, y_coord + 1);
 
-                   
-                    value = Bin.array[(x_coord + 1) + y_coord * Bin.X + layerNumber * Bin.X * Bin.Y];
+                    value = Bin.array[(x_coord + 1) + sourceY * Bin.X + layerNumber * Bin.X * Bin.Y];
                     GL.Color3(TransferFunction(value));
                     GL.Vertex2(x_coord + 1, y_coord);
                 }
+            }
             GL.End();
         }
 
@@ -103,22 +128,42 @@ namespace Tomogram
             string str = Er.ToString();
         }
 
-        public void generateTextureImage(int layerNumber)
+        public void generateTextureImage(int layerNumber, bool _mirrorLeftHalf)
         {
             textureImage = new Bitmap(Bin.X, Bin.Y);
-            for (int i = 0; i < Bin.X; ++i)
-                for (int j = 0; j < Bin.Y; ++j)
+            //for (int i = 0; i < Bin.X; ++i)
+            //    for (int j = 0; j < Bin.Y; ++j)
+            //    {
+            //        int targetX = i;
+            //        int targetY = j;
+
+            //        if (_mirrorLeftHalf && i < Bin.X / 2)
+            //        {
+            //            targetY = Bin.Y - 1 - j; // Зеркалим по вертикали
+            //        }
+
+            //        int pixelNumber = targetX + targetY * Bin.X + layerNumber * Bin.X * Bin.Y;
+            //        textureImage.SetPixel(i, j, TransferFunction(Bin.array[pixelNumber]));
+            //    }
+            for (int x = 0; x < Bin.X; x++)
+            {
+                for (int y = 0; y < Bin.Y; y++)
                 {
-                    int pixelNumber = i + j * Bin.X + layerNumber * Bin.X * Bin.Y;
-                    textureImage.SetPixel(i, j, TransferFunction(Bin.array[pixelNumber]));
+                    int sourceY = _mirrorLeftHalf && x < Bin.X / 2 ? Bin.Y - 1 - y : y;
+                    int pixelNumber = x + sourceY * Bin.X + layerNumber * Bin.X * Bin.Y;
+                    Color color = TransferFunction(Bin.array[pixelNumber]);
+                    textureImage.SetPixel(x, y, color);  // Устанавливаем в (x, y), а не (x, sourceY)
                 }
+            }
         }
 
+        [Obsolete]
         public void DrawTexture()
         {
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.Enable(EnableCap.Texture2D);
             GL.BindTexture(TextureTarget.Texture2D, VBOtexture);
+
             GL.Begin(BeginMode.Quads);
             GL.Color3(Color.White);
             GL.TexCoord2(0f, 0f);
@@ -129,29 +174,32 @@ namespace Tomogram
             GL.Vertex2(Bin.X, Bin.Y);
             GL.TexCoord2(1f, 0f);
             GL.Vertex2(Bin.X, 0);
+
             GL.End();
             GL.Disable(EnableCap.Texture2D);
 
         }
 
         [Obsolete]
-        public void DrawQuadStrip(int layerNumber)
+        public void DrawQuadStrip(int layerNumber, bool mirrorLeftHalf)
         {
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            //GL.Begin(BeginMode.QuadStrip);
             for (int y_coord = 0; y_coord < Bin.Y - 1; y_coord++)
             {
                 GL.Begin(BeginMode.QuadStrip);
                 for (int x_coord = 0; x_coord < Bin.X; x_coord++)
                 {
+                    int sourceY1 = mirrorLeftHalf && x_coord < Bin.X / 2 ? Bin.Y - 1 - y_coord : y_coord;
+                    int sourceY2 = mirrorLeftHalf && x_coord < Bin.X / 2 ? Bin.Y - 2 - y_coord : y_coord + 1;
+
                     short value;
 
-                    // 1 вершина
-                    value = Bin.array[x_coord + y_coord * Bin.X + layerNumber * Bin.X * Bin.Y];
+                    value = Bin.array[x_coord + sourceY1 * Bin.X + layerNumber * Bin.X * Bin.Y];
                     GL.Color3(TransferFunction(value));
                     GL.Vertex2(x_coord, y_coord);
 
-                    // 2 вершина
-                    value = Bin.array[x_coord + (y_coord + 1) * Bin.X + layerNumber * Bin.X * Bin.Y];
+                    value = Bin.array[x_coord + sourceY2 * Bin.X + layerNumber * Bin.X * Bin.Y];
                     GL.Color3(TransferFunction(value));
                     GL.Vertex2(x_coord, y_coord + 1);
                 }
